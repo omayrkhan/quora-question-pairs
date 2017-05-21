@@ -18,7 +18,7 @@ from scipy.stats import skew, kurtosis
 MODEL_FILE_PATH = "data/test/vectors.txt"
 MISSING_WORD_FILE_PATH = "data/test/missing_words_test.csv"
 TRANSFORMED_DATA_FILE_PATH = "data/test/sample_transformed.csv"
-DATA_FILE = "data/test/sample.csv"
+DATA_FILE_PATH = "data/test/sample.csv"
 
 def question_to_vector(column1,column2):
 
@@ -191,7 +191,7 @@ def load_glove_model(gloveFile):
 
 def read_data():
 
-    data = pd.read_csv(DATA_FILE)
+    data = pd.read_csv(DATA_FILE_PATH)
     #var = str( data.loc[data["id"]==53,"question1"])
     #print var#cleanser(var)
 
