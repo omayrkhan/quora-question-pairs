@@ -11,17 +11,18 @@ from fuzzywuzzy import fuzz
 from nltk.corpus import stopwords
 import numpy as np
 import time
-import gensim
 from scipy.spatial.distance import cosine, cityblock, canberra, minkowski, braycurtis, euclidean, jaccard
 from scipy.stats import skew, kurtosis
-#from glove import Glove
+
 
 MODEL_FILE_PATH = "data/test/vectors.txt"
-MISSING_WORD_FILE_PATH = "data/wiki/missing_words_test.csv"
-TRANSFORMED_DATA_FILE_PATH = "data/wiki/new_test.csv"
+MISSING_WORD_FILE_PATH = "data/test/missing_words_test.csv"
+TRANSFORMED_DATA_FILE_PATH = "data/test/sample_transformed.csv"
+DATA_FILE = "data/test/sample.csv"
+
 def question_to_vector(column1,column2):
 
-    model = gensim.models.KeyedVectors.load_word2vec_format(MODEL_FILE_PATH, binary=False)
+    model = load_glove_model(MODEL_FILE_PATH)
     print "model loaded"
 
     combined_text = zip(column1,column2)
@@ -36,18 +37,15 @@ def question_to_vector(column1,column2):
 
         distance_dict = distances(question_vectors[0, :], question_vectors[1, :])
         for j,key in enumerate(distance_dict.keys()):
-            temp_container[i, 602+j] = distance_dict[key]
+            temp_container[i, 600+j] = distance_dict[key]
 
-        temp_container[i, 613] = zero_flag[0]
-        temp_container[i, 614] = zero_flag[1]
+        temp_container[i, 611] = zero_flag[0]
+        temp_container[i, 612] = zero_flag[1]
 
         if len(missing_words[0]) > 0 or len(missing_words[0]) > 1:
             missing_words_df.loc[i] = [int(i),','.join(map(str, missing_words[0])),','.join(map(str, missing_words[1]))]
 
-    WMD_temp = word_movers_distance(combined_text,model)
-    temp_container[:, 600] = WMD_temp[:,0]
-    temp_container[:, 601] = WMD_temp[:,1]
-    missing_words_df.to_csv(MISSING_WORD_FILE_PATH,sep='\t')
+    missing_words_df.to_csv(MISSING_WORD_FILE_PATH)
     #print "missing words written"
 
     return temp_container,distance_dict.keys()
@@ -104,28 +102,6 @@ def vectorizer(questions, model):
         temp_words, M, v = [],[],0
 
     return question_vectors, missing_words, zero_flag[::-1]
-
-
-def word_movers_distance(questions, model):
-
-    WMD = np.zeros(shape=[len(questions),2])
-    for i, question in enumerate(questions):
-        try:
-            WMD[i,0] = model.wmdistance(cleanser(question[0]), cleanser(question[1]))
-        except Exception as e:
-            print "*** WMD_basic exception ***  " + str(e)
-            WMD[i, 0] = np.nan
-
-    model.init_sims(replace=True)
-    for i, question in enumerate(questions):
-        try:
-            WMD[i, 1] = model.wmdistance(cleanser(question[0]), cleanser(question[1]))
-        except Exception as e:
-            print "*** WMD_normalised exception ***  " + str(e)
-            WMD[i, 1] = np.nan
-
-    return WMD
-
 
 def distances(vectorA, vectorB):
 
@@ -215,7 +191,7 @@ def load_glove_model(gloveFile):
 
 def read_data():
 
-    data = pd.read_csv("data/test.csv")
+    data = pd.read_csv(DATA_FILE)
     #var = str( data.loc[data["id"]==53,"question1"])
     #print var#cleanser(var)
 
@@ -260,7 +236,7 @@ def read_data():
     print "levenshtein and basic features done!"
 
     vector_features, col_distance = question_to_vector(data['question1'], data['question2'])
-    col_distance = ['WMD_basic','WMD_normalized'] + col_distance
+    #col_distance = ['WMD_basic','WMD_normalized'] + col_distance
 
     print "assigning vector values"
     for i in range(0,300):
@@ -272,8 +248,8 @@ def read_data():
     for i,key in enumerate(col_distance):
         data[key] = vector_features[:,600+i]
 
-    data["zero_vec_check_q1"] = vector_features[:, 613]
-    data["zero_vec_check_q2"] = vector_features[:, 614]
+    data["zero_vec_check_q1"] = vector_features[:, 611]
+    data["zero_vec_check_q2"] = vector_features[:, 612]
 
     header = ['id','is_duplicate']
     header.extend(col_basic)
@@ -284,7 +260,7 @@ def read_data():
     header.append('zero_vec_check_q1')
     header.append('zero_vec_check_q2')
     print "writing csv"
-    data.to_csv(TRANSFORMED_DATA_FILE_PATH, columns = header, sep='\t')
+    data.to_csv(TRANSFORMED_DATA_FILE_PATH, columns = header)
     print "done!"
 
 
@@ -293,9 +269,7 @@ def main():
 
     start_time = time.time()
 
-    model = load_glove_model(MODEL_FILE_PATH)
-    print model.most_similar('man')
-    #read_data()
+    read_data()
 
 
     print "--- %s Minutes ---" % ((time.time() - start_time)/60)
