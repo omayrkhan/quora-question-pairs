@@ -27,7 +27,7 @@ def question_to_vector(column1,column2):
 
     combined_text = zip(column1,column2)
     temp_container = np.zeros(shape=(len(column1),615))
-    missing_words_df = pd.DataFrame(columns=['id','question1','question2'])
+    missing_words_df = pd.DataFrame(columns=['question1','question2'])
 
     for i, questions in enumerate(combined_text):
 
@@ -43,7 +43,7 @@ def question_to_vector(column1,column2):
         temp_container[i, 612] = zero_flag[1]
 
         if len(missing_words[0]) > 0 or len(missing_words[0]) > 1:
-            missing_words_df.loc[i] = [int(i),','.join(map(str, missing_words[0])),','.join(map(str, missing_words[1]))]
+            missing_words_df.loc[i] = [map(str, missing_words[0]),map(str, missing_words[1])]
 
     missing_words_df.to_csv(MISSING_WORD_FILE_PATH)
     #print "missing words written"
