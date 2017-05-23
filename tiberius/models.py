@@ -19,7 +19,7 @@ import sys
 try:
     file = sys.argv[1]
     file_name = sys.argv[2]
-    PICLKLE_FILE_PATH = "data/"+str(file)+"/"+str(file_name)+".pkl"
+    PICLKLE_FILE_PATH = "data/train/glove-xgboost.pkl"
     SUBMISSION_FILE_PATH = "data/"+str(file)+"/"+str(file_name)+".csv"
     TRANSFORMED_DATA_FILE_PATH = "data/"+str(file)+"/"+str(file)+"_transformed.csv"
 except Exception as e:
@@ -60,8 +60,8 @@ def sequential_reader():
             data = pd.read_csv(TRANSFORMED_DATA_FILE_PATH, skiprows=i,nrows=step)
             # 628 for glove, 630 for word2vec including the WMDs
             X = np.array(data.iloc[:, 3:628])
-            X[np.isnan(X)] = -5555555
-            X[np.isinf(X)] = -5555555
+            X[np.isnan(X)] = 0#-5555555
+            X[np.isinf(X)] = 0#-5555555
             result = clf.predict_proba(X)
 
             for j in range(0,step):
@@ -72,8 +72,8 @@ def sequential_reader():
         data = pd.read_csv(TRANSFORMED_DATA_FILE_PATH, skiprows=i, nrows=last_batch)
         #628 for glove, 630 for word2vec including the WMDs
         X = np.array(data.iloc[:, 3:628])
-        X[np.isnan(X)] = -5555555
-        X[np.isinf(X)] = -5555555
+        X[np.isnan(X)] = 0#-5555555
+        X[np.isinf(X)] = 0#-5555555
         result = clf.predict_proba(X)
         for j in range(0, last_batch):
             submission_file.write(str(i + j) + ',' + str('%.1f'%result[j][1]) + '\n')
