@@ -29,7 +29,7 @@ except Exception as e:
 
 def prototype():
 
-    data = pd.read_csv(TRANSFORMED_DATA_FILE_PATH, delimiter='\t')
+    data = pd.read_csv(TRANSFORMED_DATA_FILE_PATH)
     y = np.array(data.iloc[:,2])
     # 628 for glove, 630 for word2vec including the WMDs
     X = np.array(data.iloc[:,3:628])
@@ -57,7 +57,7 @@ def sequential_reader():
 
         for i in range(start,stop,step):
             print "i :",i
-            data = pd.read_csv(TRANSFORMED_DATA_FILE_PATH, skiprows=i,nrows=step, delimiter='\t')
+            data = pd.read_csv(TRANSFORMED_DATA_FILE_PATH, skiprows=i,nrows=step)
             # 628 for glove, 630 for word2vec including the WMDs
             X = np.array(data.iloc[:, 3:628])
             X[np.isnan(X)] = -5555555
@@ -69,7 +69,7 @@ def sequential_reader():
 
         print "last i: ",i
         last_batch = stop - i
-        data = pd.read_csv(TRANSFORMED_DATA_FILE_PATH, skiprows=i, nrows=last_batch, delimiter='\t')
+        data = pd.read_csv(TRANSFORMED_DATA_FILE_PATH, skiprows=i, nrows=last_batch)
         #628 for glove, 630 for word2vec including the WMDs
         X = np.array(data.iloc[:, 3:628])
         X[np.isnan(X)] = -5555555
