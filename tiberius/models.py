@@ -81,7 +81,7 @@ def sequential_reader():
 
 def XGboost_model_pickle(X_train, X_test, y_train, y_test):
     clf = xgboost.XGBClassifier(learning_rate=0.1,
-                                n_estimators=351,
+                                n_estimators=251,
                                 max_depth=9,
                                 min_child_weight=1,
                                 gamma=0.2,
