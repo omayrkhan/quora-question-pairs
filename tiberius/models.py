@@ -14,36 +14,29 @@ from sklearn.model_selection import GridSearchCV,StratifiedKFold,cross_val_score
 from sklearn.metrics import accuracy_score
 import xgboost
 import cPickle
+import sys
 
-def read_file():
-
-    data = pd.read_csv('data/wiki/engineered_features.csv', delimiter='\t')
-    y = data.iloc[:,2]
-
-    X = np.zeros(shape=(len(y),628))
-    X = data.iloc[:,3:632]
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.1, random_state = 42, stratify=y)
-    stratified_sample = np.zeros(shape=(len(X_test), X_test.shape[1]+1))
-    stratified_sample[:, 0:X_test.shape[1]] = X_test
-    stratified_sample[:, X_test.shape[1]] = y_test
-    np.save("prototype.csv", stratified_sample)
-
-    #X_train, X_test, y_train, y_test = train_test_split(X_test, y_test, test_size=0.1, random_state=42, stratify=y_test)
+try:
+    file = sys.argv[1]
+    file_name = sys.argv[2]
+    PICLKLE_FILE_PATH = "data/"+str(file)+"/"+str(file_name)+".pkl"
+    SUBMISSION_FILE_PATH = "data/"+str(file)+"/"+str(file_name)+".csv"
+    TRANSFORMED_DATA_FILE_PATH = "data/"+str(file)+"/"+str(file)+"_transformed.csv"
+except Exception as e:
+    print str(e)
+    print "arguments error"
+    exit(0)
 
 def prototype():
 
-    data = pd.read_csv('data/wiki/new_train.csv', delimiter='\t')
+    data = pd.read_csv(TRANSFORMED_DATA_FILE_PATH, delimiter='\t')
     y = np.array(data.iloc[:,2])
-    X = np.array(data.iloc[:,3:630])
+    # 628 for glove, 630 for word2vec including the WMDs
+    X = np.array(data.iloc[:,3:628])
     print "loaded"
 
-    #data = np.load('data/prototype.csv.npy')
-    #y = data[:,629]
-    #X = data[:,0:629]
-
-    X[np.isnan(X)] = -5555555
-    X[np.isinf(X)] = -5555555
+    X[np.isnan(X)] = 0#-5555555
+    X[np.isinf(X)] = 0#-5555555
 
     print "loading done..."
     #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
@@ -56,16 +49,17 @@ def sequential_reader():
     stop = 2345796
     step = 10000
 
-    with open('data/wiki/models/xgboost_trained.pkl', 'rb') as pkl:
+    with open(PICLKLE_FILE_PATH, 'rb') as pkl:
         clf = cPickle.load(pkl)
 
-    with open('data/wiki/submissions/submission-3.csv', 'a') as submission_file:
+    with open(SUBMISSION_FILE_PATH, 'a') as submission_file:
         submission_file.write('test_id,is_duplicate' + '\n')
 
         for i in range(start,stop,step):
             print "i :",i
-            data = pd.read_csv('data/wiki/new_test.csv', skiprows=i,nrows=step, delimiter='\t')
-            X = np.array(data.iloc[:, 3:630])
+            data = pd.read_csv(TRANSFORMED_DATA_FILE_PATH, skiprows=i,nrows=step, delimiter='\t')
+            # 628 for glove, 630 for word2vec including the WMDs
+            X = np.array(data.iloc[:, 3:628])
             X[np.isnan(X)] = -5555555
             X[np.isinf(X)] = -5555555
             result = clf.predict_proba(X)
@@ -75,8 +69,9 @@ def sequential_reader():
 
         print "last i: ",i
         last_batch = stop - i
-        data = pd.read_csv('data/wiki/new_test.csv', skiprows=i, nrows=last_batch, delimiter='\t')
-        X = np.array(data.iloc[:, 3:630])
+        data = pd.read_csv(TRANSFORMED_DATA_FILE_PATH, skiprows=i, nrows=last_batch, delimiter='\t')
+        #628 for glove, 630 for word2vec including the WMDs
+        X = np.array(data.iloc[:, 3:628])
         X[np.isnan(X)] = -5555555
         X[np.isinf(X)] = -5555555
         result = clf.predict_proba(X)
@@ -84,48 +79,36 @@ def sequential_reader():
             submission_file.write(str(i + j) + ',' + str('%.1f'%result[j][1]) + '\n')
 
 
-
-def LR_model(X_train, X_test, y_train, y_test):
-
-    clf = LogisticRegression()
-    clf.fit(X_train, y_train)
-    print "fitting done..."
-    results = clf.predict(X_test)
-    score = accuracy_score(y_test, results)
-    print "predicting done ..."
-    # scores = cross_val_score(LR, X, y, cv=10, scoring='roc_auc')
-
-    print "Accuracy: ", score
-
 def XGboost_model_pickle(X_train, X_test, y_train, y_test):
     clf = xgboost.XGBClassifier(learning_rate=0.1,
-                                n_estimators=249,
+                                n_estimators=351,
                                 max_depth=9,
                                 min_child_weight=1,
-                                gamma=0,
+                                gamma=0.2,
                                 subsample=0.8,
                                 colsample_bytree=0.8,
                                 objective='binary:logistic',
-                                nthread=-1,
+                                nthread=4,
                                 scale_pos_weight=1,
                                 seed=27)
 
     clf.fit(X_train,y_train)
-    with open('data/wiki/models/xgboost_trained-2.pkl', 'wb') as fid:
+    with open(PICLKLE_FILE_PATH, 'wb') as fid:
         cPickle.dump(clf, fid)
+
 
 def XGboost_model(X_train, X_test, y_train, y_test):
 
     # fit model on training data
     clf = xgboost.XGBClassifier(learning_rate=0.1,
-                                n_estimators=249,
+                                n_estimators=351,
                                 max_depth=9,
                                 min_child_weight=1,
-                                gamma=0,
+                                gamma=0.2,
                                 subsample=0.8,
                                 colsample_bytree=0.8,
                                 objective='binary:logistic',
-                                nthread=-1,
+                                nthread=4,
                                 scale_pos_weight=1,
                                 seed=27)
 
@@ -139,13 +122,16 @@ def XGboost_model(X_train, X_test, y_train, y_test):
     #score = accuracy_score(y_test,results)
     #print "Accuracy: ",score
 
-
 def main():
 
     start_time = time.time()
-    #read_file()
-    #prototype()
-    sequential_reader()
+    sType = sys.argv[1]
+
+    if sType == 'train':
+        prototype()
+    if sType == 'test':
+        sequential_reader()
+
     print "--- %s Minutes ---" % ((time.time() - start_time)/60)
 
 
