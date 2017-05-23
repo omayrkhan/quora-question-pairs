@@ -23,10 +23,8 @@ try:
     DATA_FILE_PATH = "data/"+str(file)+"/"+str(file)+".csv"
 except Exception as e:
     print str(e)
-    MODEL_FILE_PATH = "data/vectors.txt"
-    MISSING_WORD_FILE_PATH = "data/train/missing_words_test.csv"
-    TRANSFORMED_DATA_FILE_PATH = "data/train/train_transformed.csv"
-    DATA_FILE_PATH = "data/train/train.csv"
+    print "arguments error"
+    exit(0)
 
 def question_to_vector(column1,column2):
 
