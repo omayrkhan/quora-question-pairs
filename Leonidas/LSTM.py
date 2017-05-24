@@ -13,7 +13,7 @@ import pandas as pd
 from tqdm import tqdm
 from keras import backend as K
 import tensorflow as tf
-
+import sys
 #----Global Variables-----#
 
 MAX_LEN = 40
@@ -196,7 +196,7 @@ def deep_net(data):
 
 def Main():
 
-    file = 'train_subset.csv'
+    file ='train.csv'
     filtered_data=Data_Cleaning(file)
     deep_net(filtered_data)
 
