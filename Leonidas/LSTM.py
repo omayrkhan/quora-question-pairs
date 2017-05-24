@@ -196,7 +196,7 @@ def deep_net(data):
 
 def Main():
 
-    file ='train.csv'
+    file = sys.argv[1]
     filtered_data=Data_Cleaning(file)
     deep_net(filtered_data)
 
