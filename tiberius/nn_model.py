@@ -71,7 +71,7 @@ merged_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['acc
 
 #checkpoint = ModelCheckpoint('weights.h5', monitor='val_acc', save_best_only=True, verbose=2)
 
-merged_model.fit([q1, q2], y=y, batch_size=384, epochs=100,verbose=1)
+merged_model.fit([q1, q2], y=y, batch_size=384, epochs=2s00,verbose=1)
                     #, validation_split=0.25, shuffle=True, callbacks=[checkpoint])
 
 #merged_model.save(PICLKLE_FILE_PATH)
