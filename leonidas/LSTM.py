@@ -14,6 +14,8 @@ from tqdm import tqdm
 from keras import backend as K
 import tensorflow as tf
 import sys
+
+
 #----Global Variables-----#
 
 MAX_LEN = 40
@@ -35,9 +37,7 @@ def Distance(inputs):
     return output
 
 
-def Data_Cleaning(data):
-
-    corpus_raw = pd.read_csv(data)
+def Data_Cleaning(corpus_raw):
 
     corpus_raw['question1'] = corpus_raw['question1'].apply(lambda row: str(row).lower())
     corpus_raw['question2'] = corpus_raw['question2'].apply(lambda row: str(row).lower())
@@ -49,22 +49,15 @@ def Data_Cleaning(data):
     corpus_raw['question2'] = corpus_raw['question2'].apply(lambda row: "".join([s  if s.isalpha() or s.isdigit() or s == "'" or s == " " else ' ' for s in row]))
 
 
-    # Remove stopwords , numeric and alphanumeric characters
-
-    corpus_raw['question1_tokens'] = corpus_raw['question1'].apply(
-        lambda row: [row for row in row.split() if row is not row.isalpha()])
-    corpus_raw['question2_tokens'] = corpus_raw['question2'].apply(
-
-        lambda row: [row for row in row.split() if row is not  row.isalpha()])
-
-    corpus_raw['question1_tokens'] = corpus_raw['question1_tokens'].apply(lambda row: ",".join(row))
-    corpus_raw['question2_tokens'] = corpus_raw['question2_tokens'].apply(lambda row: ",".join(row))
 
 
     return corpus_raw
 
 
-def deep_net(data):
+def deep_net(train,test):
+
+    data=Data_Cleaning(train)
+
 
     y=data.is_duplicate.values
     tk=text.Tokenizer()
@@ -104,7 +97,7 @@ def deep_net(data):
 
     )
 
-    Quora_word2vec = gensim.models.KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin',binary=True)
+    Quora_word2vec = gensim.models.KeyedVectors.load_word2vec_format('wiki.en.vec',binary=False)
     embedding_matrix=np.zeros((len(word_index)+1,300))
 
     for word , i in tqdm(word_index.items()): #i is index
@@ -130,9 +123,11 @@ def deep_net(data):
         trainable=False
         ))
 
-    model1.add(SpatialDropout1D(0.2))
+
     model1.add(TimeDistributed(Dense(300, activation='relu')))
     model1.add(Lambda(lambda x: K.sum(x, axis=1), output_shape=(300,)))
+    #model1.add(SpatialDropout1D(0.2))
+
 
     print model1.summary()
 
@@ -147,10 +142,10 @@ def deep_net(data):
         input_length=MAX_LEN,
         trainable=False
         ))  # Embedding layer
-    model2.add(SpatialDropout1D(0.2))
+
     model2.add(TimeDistributed(Dense(300, activation='relu')))
     model2.add(Lambda(lambda x: K.sum(x, axis=1), output_shape=(300,)))
-
+    #model2.add(SpatialDropout1D(0.2))
 
     print model2.summary()
 
@@ -186,12 +181,44 @@ def deep_net(data):
     print neural_network.summary()
 
 
-    neural_network.compile(loss='mean_squared_error', optimizer='sgd', metrics=['accuracy'])
+    neural_network.compile(loss='binary_crossentropy', optimizer='sgd', metrics=['accuracy'])
 
-    checkpoint = ModelCheckpoint('weights.h5', monitor='val_acc', save_best_only=True, verbose=2)
+    #checkpoint = ModelCheckpoint('weights.h5', monitor='val_acc', save_best_only=True, verbose=2)
+
+    #history_callback=neural_network.fit([question1,question2],y=y,batch_size=384,validation_split=0.3,verbose=1,
+                       #shuffle=True,callbacks=[checkpoint],nb_epoch=200)
+
+    #train_loss=history_callback.history["loss"]
+    #val_loss = history_callback.history["val_loss"]
+    #train_acc=history_callback['acc']
+    #val_acc=history_callback['val_acc']
+    #np.savetxt('train_loss.txt',train_loss)
+    #np.savetxt('val_loss.txt',val_loss)
+    #np.savetxt('train_acc.txt',train_acc)
+    #np.savetxt('val_acc.txt',val_acc)
+
 
     neural_network.fit([question1,question2],y=y, batch_size=384, epochs=200,
-                     verbose=1, validation_split=0.3, shuffle=True, callbacks=[checkpoint])
+                     verbose=1)
+
+
+
+    data_test=Data_Cleaning(test)
+    tk = text.Tokenizer()
+    tk.fit_on_texts(list(data_test.question1.values) + list(data_test.question2.values))
+
+    test_question1 = tk.texts_to_sequences(data.question1.values)
+    test_question1 = sequence.pad_sequences(test_question1, maxlen=MAX_LEN)
+
+    test_question2 = tk.texts_to_sequences(data.question2.values)
+    test_question2 = sequence.pad_sequences(test_question2, maxlen=MAX_LEN)
+    result=neural_network.predict_proba([test_question1,test_question2], batch_size=384, verbose=1)
+
+    with open("LSTM_SUBMISSION_FILE.csv", 'w') as submission_file:
+        submission_file.write('test_id,is_duplicate' + '\n')
+
+        for i in range(0, len(result)):
+            submission_file.write(str(i) + ',' + str('%.1f' % result[i][0]) + '\n')
 
 
 
@@ -199,9 +226,9 @@ def deep_net(data):
 
 def Main():
 
-    file = sys.argv[1]
-    filtered_data=Data_Cleaning(file)
-    deep_net(filtered_data)
+    test=pd.read_csv(sys.argv[2],nrows=1000)
+    train = pd.read_csv(sys.argv[1])
+    deep_net(train,test)
 
 
 
