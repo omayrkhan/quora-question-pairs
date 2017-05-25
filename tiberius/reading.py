@@ -280,15 +280,12 @@ def read_data():
 
 def main():
 
-
     start_time = time.time()
     data = pd.read_csv("data/test.csv")
     print len(data)
     #read_data()
 
-
     print "--- %s Minutes ---" % ((time.time() - start_time)/60)
-
 
 if __name__ == "__main__": main()
 
