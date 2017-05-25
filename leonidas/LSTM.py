@@ -226,7 +226,7 @@ def deep_net(train,test):
 
 def Main():
 
-    test=pd.read_csv(sys.argv[2],nrows=1000)
+    test=pd.read_csv(sys.argv[2])
     train = pd.read_csv(sys.argv[1])
     deep_net(train,test)
 
