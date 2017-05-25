@@ -36,8 +36,13 @@
 ehthumbs.db
 Thumbs.db
 
+# script Files #
+#####################
+*.sh
+
 # Project Specific Files #
 #####################
 .idea/
 data/
+scripts/
 stopwords.txt
