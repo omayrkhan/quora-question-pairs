@@ -25,7 +25,7 @@ from keras.callbacks import ModelCheckpoint
 PICLKLE_FILE_PATH = "data/train/basic-nn-model.h5"
 SUBMISSION_FILE_PATH = "data/test/basic-nn-model.csv"
 
-df = pd.read_csv("data/train/train.csv")
+df = pd.read_csv("data/test/test.csv",nrows=1000)
 y = df.is_duplicate.values
 
 tknzr = text.Tokenizer(num_words=250000)
@@ -71,14 +71,13 @@ merged_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['acc
 
 #checkpoint = ModelCheckpoint('weights.h5', monitor='val_acc', save_best_only=True, verbose=2)
 
-merged_model.fit([q1, q2], y=y, batch_size=384, epochs=200,verbose=1)
-                    #, validation_split=0.25, shuffle=True, callbacks=[checkpoint])
+merged_model.fit([q1, q2], y=y, batch_size=384, epochs=1,verbose=1)#, validation_split=0.25, shuffle=True)#, callbacks=[checkpoint])
 
 #merged_model.save(PICLKLE_FILE_PATH)
 
 output_df = pd.read_csv("data/test/test.csv")
 
-output_tknzr = text.Tokenizer(nb_words=250000)
+output_tknzr = text.Tokenizer(num_words=250000)
 
 output_tknzr.fit_on_texts(list(output_df.question1.values.astype(str))+list(output_df.question2.values.astype(str)))
 output_q1 = tknzr.texts_to_sequences(output_df.question1.values)
