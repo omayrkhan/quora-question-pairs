@@ -25,14 +25,14 @@ from keras.callbacks import ModelCheckpoint
 PICLKLE_FILE_PATH = "data/train/basic-nn-model.h5"
 SUBMISSION_FILE_PATH = "data/test/basic-nn-model.csv"
 
-df = pd.read_csv("data/test/test.csv",nrows=1000)
+df = pd.read_csv("data/train/train.csv")
 y = df.is_duplicate.values
 
 tknzr = text.Tokenizer(num_words=250000)
 max_len = 100
 
 tknzr.fit_on_texts(list(df.question1.values.astype(str))+list(df.question2.values.astype(str)))
-q1 = tknzr.texts_to_sequences(df.question1.values)
+q1 = tknzr.texts_to_sequences(df.question1.values.astype(str))
 q1 = sequence.pad_sequences(q1, maxlen=max_len)
 
 q2 = tknzr.texts_to_sequences(df.question2.values.astype(str))
@@ -80,7 +80,7 @@ output_df = pd.read_csv("data/test/test.csv")
 output_tknzr = text.Tokenizer(num_words=250000)
 
 output_tknzr.fit_on_texts(list(output_df.question1.values.astype(str))+list(output_df.question2.values.astype(str)))
-output_q1 = tknzr.texts_to_sequences(output_df.question1.values)
+output_q1 = tknzr.texts_to_sequences(output_df.question1.values.astype(str))
 output_q1 = sequence.pad_sequences(output_q1, maxlen=max_len)
 
 output_q2 = tknzr.texts_to_sequences(output_df.question2.values.astype(str))
