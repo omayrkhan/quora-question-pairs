@@ -30,7 +30,7 @@ df = pd.read_csv("data/train/train.csv")
 y = df.is_duplicate.values
 
 tknzr = text.Tokenizer(num_words=250000)
-max_len = 100
+max_len = 40
 
 tknzr.fit_on_texts(list(df.question1.values.astype(str))+list(df.question2.values.astype(str)))
 q1 = tknzr.texts_to_sequences(df.question1.values.astype(str))
@@ -44,17 +44,17 @@ word_index = tknzr.word_index
 ytrain_enc = np_utils.to_categorical(y)
 
 model1 = Sequential()
-model1.add(Embedding(len(word_index) + 1, 300, input_length=100, dropout=0.2))
+model1.add(Embedding(len(word_index) + 1, 300, input_length=40, dropout=0.2))
 model1.add(Conv1D(filters=32, kernel_size=3, padding='same', activation='relu'))
-model1.add(Dropout(0.2))
 model1.add(MaxPooling1D(pool_size=2))
+model1.add(Dropout(0.2))
 model1.add(LSTM(300, dropout=0.2, recurrent_dropout=0.2))
 
 model2 = Sequential()
-model2.add(Embedding(len(word_index) + 1, 300, input_length=100, dropout=0.2))
+model2.add(Embedding(len(word_index) + 1, 300, input_length=40, dropout=0.2))
 model2.add(Conv1D(filters=32, kernel_size=3, padding='same', activation='relu'))
-model1.add(Dropout(0.2))
 model2.add(MaxPooling1D(pool_size=2))
+model1.add(Dropout(0.2))
 model2.add(LSTM(300, dropout=0.2, recurrent_dropout=0.2))
 
 merged_model = Sequential()
