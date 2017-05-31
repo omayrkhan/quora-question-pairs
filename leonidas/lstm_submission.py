@@ -2,7 +2,7 @@ from keras.models import Sequential
 from keras.layers.embeddings import Embedding
 from keras.layers import Lambda,Merge,TimeDistributed,BatchNormalization,PReLU,Dropout
 from keras.layers.recurrent import LSTM
-from keras.callbacks import ModelCheckpoint
+from keras.callbacks import ModelCheckpoint,EarlyStopping
 from keras.preprocessing import sequence,text
 from keras.layers.core import Activation,Dense,SpatialDropout1D
 import logging
@@ -44,16 +44,20 @@ def deep_net(train,test):
 
 
     y=train.is_duplicate.values
-    tk=text.Tokenizer()
+    tk=text.Tokenizer(MAX_NB_WORDS)
     tk.fit_on_texts(list(train.question1.values.astype(str))+list(train.question2.values.astype(str)))
-
-
     question1 = tk.texts_to_sequences(train.question1.values.astype(str))
     question1 = sequence.pad_sequences(question1,maxlen=MAX_LEN)
-
     question2 = tk.texts_to_sequences(train.question2.values.astype(str))
     question2 = sequence.pad_sequences(question2,maxlen=MAX_LEN)
 
+    tk = text.Tokenizer()
+    test_ids = test.test_id.values
+    tk.fit_on_texts(list(test.question1.values.astype(str)) + list(test.question2.values.astype(str)))
+    test_question1 = tk.texts_to_sequences(test.question1.values.astype(str))
+    test_question1 = sequence.pad_sequences(test_question1, maxlen=MAX_LEN)
+    test_question2 = tk.texts_to_sequences(test.question2.values.astype(str))
+    test_question2 = sequence.pad_sequences(test_question2, maxlen=MAX_LEN)
 
     word_index = tk.word_index
     embeddings_index = {}
@@ -86,9 +90,8 @@ def deep_net(train,test):
         trainable=False
         ))
 
-    #model1.add(LSTM(EMBEDDING_DIM,return_sequences=True))
     model1.add(TimeDistributed(Dense(EMBEDDING_DIM, activation='relu')))
-    model1.add(Lambda(lambda x: K.max(x, axis=1), output_shape=(EMBEDDING_DIM,)))
+    model1.add(Lambda(lambda x: K.sum(x, axis=1), output_shape=(EMBEDDING_DIM,)))
 
 
 
@@ -106,9 +109,9 @@ def deep_net(train,test):
         trainable=False
         ))
 
-    #model2.add(LSTM(EMBEDDING_DIM,return_sequences=True))
+
     model2.add(TimeDistributed(Dense(EMBEDDING_DIM, activation='relu')))
-    model2.add(Lambda(lambda x: K.max(x, axis=1), output_shape=(EMBEDDING_DIM,)))
+    model2.add(Lambda(lambda x: K.sum(x, axis=1), output_shape=(EMBEDDING_DIM,)))
 
 
     print model2.summary()
@@ -142,29 +145,22 @@ def deep_net(train,test):
     sgd = optimizers.SGD(lr=0.01, clipnorm=0.5)
     neural_network.compile(loss='binary_crossentropy', optimizer=sgd, metrics=['accuracy'])
 
+    early_stopping = EarlyStopping(monitor='val_loss', patience=3)
+    checkpoint = ModelCheckpoint('LSTM_DISTANCE_WEIGHTS.h5', monitor='val_acc', save_best_only=True, verbose=2)
 
+    hist=neural_network.fit([question1,question2],y=y, batch_size=100, epochs=150,shuffle=True,
+                    verbose=1,validation_split=0.1,callbacks=[early_stopping,checkpoint])
 
-    neural_network.fit([question1,question2],y=y, batch_size=100, epochs=150,
-                    verbose=1)
+    neural_network.load_weights("LSTM_DISTANCE_WEIGHTS.h5")
+    bst_val_score = min(hist.history['val_loss'])
+    bst_val_acc=max(hist.history['val_acc'])
+    print bst_val_acc
 
-
-
-
-    tk = text.Tokenizer()
-    tk.fit_on_texts(list(test.question1.values.astype(str)) + list(test.question2.values.astype(str)))
-
-    test_question1 = tk.texts_to_sequences(test.question1.values.astype(str))
-    test_question1 = sequence.pad_sequences(test_question1, maxlen=MAX_LEN)
-
-    test_question2 = tk.texts_to_sequences(test.question2.values.astype(str))
-    test_question2 = sequence.pad_sequences(test_question2, maxlen=MAX_LEN)
     result=neural_network.predict_proba([test_question1,test_question2], batch_size=100, verbose=1)
 
-    with open("MyModel.csv", 'w') as submission_file:
-        submission_file.write('test_id,is_duplicate' + '\n')
+    submission = pd.DataFrame({'test_id': test_ids, 'is_duplicate': result.ravel()})
+    submission.to_csv('%.4f_' % (bst_val_score) + "submission" + '.csv', index=False)
 
-        for i in range(0, len(result)):
-            submission_file.write(str(i) + ',' + str('%.1f' % result[i][0]) + '\n')
 
 
 
