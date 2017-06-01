@@ -12,27 +12,23 @@ import re
 from keras.models import Sequential
 from keras.layers.core import Dense, Activation, Dropout
 from keras.layers.embeddings import Embedding
-from keras.layers.convolutional import Conv1D, MaxPooling1D
-from keras.layers.recurrent import LSTM, GRU
+from keras.layers.recurrent import LSTM
 from keras.layers import TimeDistributed, Lambda
-from keras.utils import np_utils
 from keras.layers import Merge
-from keras.layers import Lambda, SpatialDropout1D
 from keras.preprocessing import text,sequence
 from keras.layers.advanced_activations import PReLU
 from keras.layers.normalization import BatchNormalization
-from keras.callbacks import ModelCheckpoint
+from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras import backend as KBE
 from fuzzywuzzy import fuzz
 from nltk.corpus import stopwords
 from nltk.stem import SnowballStemmer
 from tqdm import tqdm
-from sklearn.preprocessing import StandardScaler
+#from sklearn.preprocessing import StandardScaler
 
 
 def train_test():
 
-    #PICLKLE_FILE_PATH = "data/train/basic-nn-model.h5"
     SUBMISSION_FILE_PATH = "data/test/feature-nn-submission.csv"
 
     df = pd.read_csv("data/train/train.csv")
@@ -40,8 +36,7 @@ def train_test():
 
     y = df.is_duplicate.values
 
-    test_tknzr = text.Tokenizer(num_words=250000)
-    tknzr = text.Tokenizer(num_words=250000)
+    tknzr = text.Tokenizer(num_words=200000)
     max_len = 40
 
     q1 = df.question1.values.astype(str)
@@ -54,34 +49,37 @@ def train_test():
     test_q1 = cleanser(list(test_q1))
     test_q2 = cleanser(list(test_q2))
 
-    tknzr.fit_on_texts(list(q1)+list(q2))
+    tknzr.fit_on_texts(q1 + q2 + test_q1 + test_q2)
 
     q1 = tknzr.texts_to_sequences(q1)
-    q1 = sequence.pad_sequences(q1, maxlen=max_len)
+    q1 = sequence.pad_sequences(q1, maxlen = max_len)
 
     q2 = tknzr.texts_to_sequences(q2)
-    q2 = sequence.pad_sequences(q2, maxlen=max_len)
+    q2 = sequence.pad_sequences(q2, maxlen = max_len)
 
-    test_tknzr.fit_on_texts(list(test_q1) + list(test_q2))
-
-    test_q1 = test_tknzr.texts_to_sequences(test_q1)
+    test_q1 = tknzr.texts_to_sequences(test_q1)
     test_q1 = sequence.pad_sequences(test_q1, maxlen=max_len)
 
-    test_q2 = test_tknzr.texts_to_sequences(test_q2)
+    test_q2 = tknzr.texts_to_sequences(test_q2)
     test_q2 = sequence.pad_sequences(test_q2, maxlen=max_len)
 
     word_index = tknzr.word_index
+    size_words = min(200000, len(word_index)) + 1
+
+    extended_q1 = np.vstack((q1, q2))
+    extended_q2 = np.vstack((q2, q1))
+    extended_y = np.vstack((y, y))
 
     #ytrain_enc = np_utils.to_categorical(y)
 
     #------- LSTM ---------#
 
     model1 = Sequential()
-    model1.add(Embedding(len(word_index) + 1, 300, input_length=40, dropout=0.2))
+    model1.add(Embedding(size_words, 300, input_length=40, dropout=0.2))
     model1.add(LSTM(300, dropout=0.2, recurrent_dropout=0.2))
 
     model2 = Sequential()
-    model2.add(Embedding(len(word_index) + 1, 300, input_length=40, dropout=0.2))
+    model2.add(Embedding(size_words, 300, input_length=40, dropout=0.2))
     model2.add(LSTM(300, dropout=0.2, recurrent_dropout=0.2))
 
     #-------- Crude Embeddings --------#
@@ -143,13 +141,15 @@ def train_test():
             'partial_token_sort_ratio', 'token_set_ratio',
             'token_sort_ratio']]
 
-    SS = StandardScaler()
-    SS.fit(np.vstack((features, test_features)))
-    features = SS.transform(features)
-    test_features = SS.transform(test_features)
+    features = np.vstack((features,features))
+
+    #SS = StandardScaler()
+    #SS.fit(np.vstack((features, test_features)))
+    #features = SS.transform(features)
+    #test_features = SS.transform(test_features)
 
     model5 = Sequential()
-    model5.add(Dense(16,input_shape=features.shape[1],activation='relu'))
+    model5.add(Dense(100,input_shape=features.shape[1],activation='relu'))
 
     merged_model = Sequential()
     merged_model.add(Merge([model1, model2, model3, model4, model5], mode='concat'))
@@ -175,17 +175,28 @@ def train_test():
 
     merged_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-    #checkpoint = ModelCheckpoint('weights.h5', monitor='val_acc', save_best_only=True, verbose=2)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=3)
+    checkpoint = ModelCheckpoint('data/train/feature-nn-weights.h5', monitor='val_loss', save_best_only=True, verbose=2)
 
-    merged_model.fit([q1, q2], y=y, batch_size=384, epochs=200,verbose=1)#, validation_split=0.25, shuffle=True)#, callbacks=[checkpoint])
+    hist = merged_model.fit([extended_q1, extended_q2, extended_q1, extended_q2, features], y=extended_y,
+                     batch_size=384, epochs=10, verbose=1, validation_split=0.1,
+                     shuffle=True, callbacks=[early_stopping,checkpoint])
+
+    bst_val_score = min(hist.history['val_loss'])
+    merged_model.load_weights('data/train/feature-nn-weights.h5')
 
     result = merged_model.predict_proba([test_q1, test_q2, test_q1, test_q2, test_features], batch_size=384, verbose=1)
+    result += merged_model.predict_proba([test_q2, test_q1, test_q2, test_q1, test_features], batch_size=384, verbose=1)
+    result /= 2
 
-    with open(SUBMISSION_FILE_PATH, 'w') as submission_file:
-        submission_file.write('test_id,is_duplicate' + '\n')
+    submission = pd.DataFrame({'test_id': np.array(test_df.test_id.values), 'is_duplicate': result.ravel()})
+    submission.to_csv('%.4f_' % (bst_val_score) + 'feature-submission.csv', index=False)
 
-        for i in range(0, len(result)):
-            submission_file.write(str(i) + ',' + str('%.1f' % result[i][0]) + '\n')
+    # with open(SUBMISSION_FILE_PATH, 'w') as submission_file:
+    #     submission_file.write('test_id,is_duplicate' + '\n')
+    #
+    #     for i in range(0, len(result)):
+    #         submission_file.write(str(i) + ',' + str('%.1f' % result[i][0]) + '\n')
 
 
 def basic_features(data):
