@@ -66,24 +66,18 @@ def train_test():
     word_index = tknzr.word_index
     size_words = min(200000, len(word_index)) + 1
 
+    test_q1 = np.array(test_q1)
+    test_q2 = np.array(test_q2)
+
     extended_q1 = np.vstack((q1, q2))
     extended_q2 = np.vstack((q2, q1))
-    extended_y = np.vstack((y, y))
+    extended_y = np.vstack((y.reshape(len(df),1), y.reshape(len(df),1)))
+    extended_y = extended_y.reshape(2*len(df),)
 
     print "text preprocessing and tokenier initialization done"
-    #ytrain_enc = np_utils.to_categorical(y)
 
-    #------- LSTM ---------#
 
-    model1 = Sequential()
-    model1.add(Embedding(size_words, 300, input_length=40, dropout=0.2))
-    model1.add(LSTM(300, dropout=0.2, recurrent_dropout=0.2))
-
-    model2 = Sequential()
-    model2.add(Embedding(size_words, 300, input_length=40, dropout=0.2))
-    model2.add(LSTM(300, dropout=0.2, recurrent_dropout=0.2))
-
-    #-------- Crude Embeddings --------#
+    #-------- GLoVe Initialization --------#
 
     print "GloVe initalization starts"
     embeddings_index = {}
@@ -102,6 +96,18 @@ def train_test():
         embedding_vector = embeddings_index.get(word)
         if embedding_vector is not None:
             embedding_matrix[i] = embedding_vector
+
+    # -------- LSTM and Crude Embeddings --------#
+
+    model1 = Sequential()
+    model1.add(Embedding(size_words, 300, input_length=40, dropout=0.2))
+    #model1.add(Embedding(size_words, 300, weights=[embedding_matrix], input_length=40, dropout=0.2))
+    model1.add(LSTM(300, dropout=0.2, recurrent_dropout=0.2))
+
+    model2 = Sequential()
+    model2.add(Embedding(size_words, 300, input_length=40, dropout=0.2))
+    #model2.add(Embedding(size_words, 300, weights=[embedding_matrix], input_length=40, dropout=0.2))
+    model2.add(LSTM(300, dropout=0.2, recurrent_dropout=0.2))
 
     model3 = Sequential()
     model3.add(Embedding(len(word_index) + 1,
@@ -123,11 +129,15 @@ def train_test():
     model4.add(TimeDistributed(Dense(300, activation='relu')))
     model4.add(Lambda(lambda x: KBE.sum(x, axis=1), output_shape=(300,)))
 
-    print "GloVe initalization complete"
-
     # ---------- Feature Embedding ------------ #
 
-    df = basic_features(df)
+    temp_df = df[['question1', 'question2']]
+    temp_df.columns = ['question2', 'question1']
+
+    extended_df = pd.concat([df[['question1', 'question2']],
+                             temp_df[['question1', 'question2']]], axis=0).reset_index(drop='index')
+
+    extended_df = basic_features(extended_df)
     test_df = basic_features(test_df)
     test_features = test_df[['len_q1', 'len_q2', 'diff_len',
            'len_char_q1', 'len_char_q2',
@@ -137,7 +147,7 @@ def train_test():
             'partial_token_sort_ratio', 'token_set_ratio',
             'token_sort_ratio']]
 
-    features = df[['len_q1', 'len_q2', 'diff_len',
+    features = extended_df[['len_q1', 'len_q2', 'diff_len',
            'len_char_q1', 'len_char_q2',
            'len_word_q1', 'len_word_q2',
            'common_words','q_ratio', 'w_ratio',
@@ -145,7 +155,9 @@ def train_test():
             'partial_token_sort_ratio', 'token_set_ratio',
             'token_sort_ratio']]
 
-    features = np.vstack((features,features))
+    features = np.array(features)
+    test_features = np.array(test_features)
+    #features = np.vstack((features,features))
 
     print "basic features done"
     #SS = StandardScaler()
@@ -183,6 +195,7 @@ def train_test():
     early_stopping = EarlyStopping(monitor='val_loss', patience=3)
 
     checkpoint = ModelCheckpoint('data/train/feature-nn-weights.h5', monitor='val_loss', save_best_only=True, verbose=2)
+
 
     hist = merged_model.fit([extended_q1, extended_q2, extended_q1, extended_q2, features], y=extended_y,
                      batch_size=384, epochs=10, verbose=1, validation_split=0.1,
