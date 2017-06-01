@@ -36,7 +36,6 @@ def train_test():
 
     y = df.is_duplicate.values
 
-    tknzr = text.Tokenizer(num_words=200000)
     max_len = 40
 
     q1 = df.question1.values.astype(str)
@@ -49,6 +48,7 @@ def train_test():
     test_q1 = cleanser(list(test_q1))
     test_q2 = cleanser(list(test_q2))
 
+    tknzr = text.Tokenizer(num_words=200000)
     tknzr.fit_on_texts(q1 + q2 + test_q1 + test_q2)
 
     q1 = tknzr.texts_to_sequences(q1)
@@ -176,6 +176,7 @@ def train_test():
     merged_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
     early_stopping = EarlyStopping(monitor='val_loss', patience=3)
+
     checkpoint = ModelCheckpoint('data/train/feature-nn-weights.h5', monitor='val_loss', save_best_only=True, verbose=2)
 
     hist = merged_model.fit([extended_q1, extended_q2, extended_q1, extended_q2, features], y=extended_y,
@@ -230,12 +231,12 @@ def basic_features(data):
 def cleanser(questions):
 
     for i,text in enumerate(questions):
-        text = text.lower().split()
+        text = text.lower()
         # Optionally, remove stop words
-        stops = set(stopwords.words("english"))
-        text = [w for w in text if not w in stops]
+        #stops = set(stopwords.words("english"))
+        #text = [w for w in text if not w in stops]
 
-        text = " ".join(text)
+        #text = " ".join(text)
 
         # Clean the text
         text = re.sub(r"[^A-Za-z0-9^,!.\/'+-=]", " ", text)
@@ -269,10 +270,11 @@ def cleanser(questions):
         text = re.sub(r"\s{2,}", " ", text)
 
         # Optionally, shorten words to their stems
-        text = text.split()
-        stemmer = SnowballStemmer('english')
-        stemmed_words = [stemmer.stem(word) for word in text]
-        questions[i] = " ".join(stemmed_words)
+        #text = text.split()
+        #stemmer = SnowballStemmer('english')
+        #stemmed_words = [stemmer.stem(word) for word in text]
+
+        questions[i] = text
 
     return questions
 
