@@ -70,6 +70,7 @@ def train_test():
     extended_q2 = np.vstack((q2, q1))
     extended_y = np.vstack((y, y))
 
+    print "text preprocessing and tokenier initialization done"
     #ytrain_enc = np_utils.to_categorical(y)
 
     #------- LSTM ---------#
@@ -84,6 +85,7 @@ def train_test():
 
     #-------- Crude Embeddings --------#
 
+    print "GloVe initalization starts"
     embeddings_index = {}
     f = open('data/vectors.txt')
     for line in tqdm(f):
@@ -121,6 +123,8 @@ def train_test():
     model4.add(TimeDistributed(Dense(300, activation='relu')))
     model4.add(Lambda(lambda x: KBE.sum(x, axis=1), output_shape=(300,)))
 
+    print "GloVe initalization complete"
+
     # ---------- Feature Embedding ------------ #
 
     df = basic_features(df)
@@ -143,6 +147,7 @@ def train_test():
 
     features = np.vstack((features,features))
 
+    print "basic features done"
     #SS = StandardScaler()
     #SS.fit(np.vstack((features, test_features)))
     #features = SS.transform(features)
