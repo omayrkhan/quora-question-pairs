@@ -100,13 +100,13 @@ def train_test():
     # -------- LSTM and Crude Embeddings --------#
 
     model1 = Sequential()
-    model1.add(Embedding(size_words, 300, input_length=40, dropout=0.2))
-    #model1.add(Embedding(size_words, 300, weights=[embedding_matrix], input_length=40, dropout=0.2))
+    #model1.add(Embedding(size_words, 300, input_length=40, dropout=0.2))
+    model1.add(Embedding(size_words, 300, weights=[embedding_matrix], input_length=40, dropout=0.2))
     model1.add(LSTM(300, dropout=0.2, recurrent_dropout=0.2))
 
     model2 = Sequential()
-    model2.add(Embedding(size_words, 300, input_length=40, dropout=0.2))
-    #model2.add(Embedding(size_words, 300, weights=[embedding_matrix], input_length=40, dropout=0.2))
+    #model2.add(Embedding(size_words, 300, input_length=40, dropout=0.2))
+    model2.add(Embedding(size_words, 300, weights=[embedding_matrix], input_length=40, dropout=0.2))
     model2.add(LSTM(300, dropout=0.2, recurrent_dropout=0.2))
 
     model3 = Sequential()
@@ -209,7 +209,7 @@ def train_test():
     result /= 2
 
     submission = pd.DataFrame({'test_id': np.array(test_df.test_id.values), 'is_duplicate': result.ravel()})
-    submission.to_csv('data/submission/%.4f_' % (bst_val_score) + 'feature-submission.csv', index=False)
+    submission.to_csv('data/submission/%.4f_' % (bst_val_score) + 'wlstm-feature-submission.csv', index=False)
 
     # with open(SUBMISSION_FILE_PATH, 'w') as submission_file:
     #     submission_file.write('test_id,is_duplicate' + '\n')
