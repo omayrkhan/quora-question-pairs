@@ -34,7 +34,7 @@ def train_test():
     df = pd.read_csv("data/train/train.csv")
     test_df = pd.read_csv("data/test/test.csv")
 
-    y = df.is_duplicate.values
+    y = np.array(df.is_duplicate.values)
 
     max_len = 40
 
@@ -154,7 +154,7 @@ def train_test():
     #test_features = SS.transform(test_features)
 
     model5 = Sequential()
-    model5.add(Dense(100,input_shape=features.shape[1],activation='relu'))
+    model5.add(Dense(100,input_shape=(features.shape[1],),activation='relu'))
 
     merged_model = Sequential()
     merged_model.add(Merge([model1, model2, model3, model4, model5], mode='concat'))
