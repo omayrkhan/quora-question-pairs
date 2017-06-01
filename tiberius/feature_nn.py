@@ -29,7 +29,7 @@ from tqdm import tqdm
 
 def train_test():
 
-    SUBMISSION_FILE_PATH = "data/test/feature-nn-submission.csv"
+    SUBMISSION_FILE_PATH = "data/submission/feature-nn-submission.csv"
 
     df = pd.read_csv("data/train/train.csv")
     test_df = pd.read_csv("data/test/test.csv")
@@ -190,7 +190,7 @@ def train_test():
     result /= 2
 
     submission = pd.DataFrame({'test_id': np.array(test_df.test_id.values), 'is_duplicate': result.ravel()})
-    submission.to_csv('%.4f_' % (bst_val_score) + 'feature-submission.csv', index=False)
+    submission.to_csv('data/submission/%.4f_' % (bst_val_score) + 'feature-submission.csv', index=False)
 
     # with open(SUBMISSION_FILE_PATH, 'w') as submission_file:
     #     submission_file.write('test_id,is_duplicate' + '\n')
