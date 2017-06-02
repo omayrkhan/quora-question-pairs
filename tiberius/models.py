@@ -18,7 +18,6 @@ import sys
 
 try:
     file = sys.argv[1]
-    file_name = sys.argv[2]
     PICLKLE_FILE_PATH = "data/train/glove-xgboost.pkl"
     SUBMISSION_FILE_PATH = "data/submission/glove-xgboost-sigfix-submission.csv"
     TRANSFORMED_DATA_FILE_PATH = "data/"+str(file)+"/"+str(file)+"_transformed.csv"
