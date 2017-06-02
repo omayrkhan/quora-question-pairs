@@ -64,7 +64,7 @@ def sequential_reader():
             result = clf.predict_proba(X)
 
             for j in range(0,step):
-                submission_file.write(str(i + j) + ',' + str('%.1f'%result[j][1]) + '\n')
+                submission_file.write(str(i + j) + ',' + str(result[j][1]) + '\n')
 
         print "last i: ",i
         last_batch = stop - i
