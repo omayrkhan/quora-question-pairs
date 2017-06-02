@@ -116,7 +116,7 @@ def train_test():
                          input_length=40,
                          trainable=False))
 
-    model3.add(TimeDistributed(Dense(300, activation='relu')))
+    #model3.add(TimeDistributed(Dense(300, activation='relu')))
     model3.add(Lambda(lambda x: KBE.sum(x, axis=1), output_shape=(300,)))
 
     model4 = Sequential()
@@ -126,7 +126,7 @@ def train_test():
                          input_length=40,
                          trainable=False))
 
-    model4.add(TimeDistributed(Dense(300, activation='relu')))
+    #model4.add(TimeDistributed(Dense(300, activation='relu')))
     model4.add(Lambda(lambda x: KBE.sum(x, axis=1), output_shape=(300,)))
 
     # ---------- Feature Embedding ------------ #
@@ -177,15 +177,15 @@ def train_test():
     merged_model.add(Dropout(0.2))
     merged_model.add(BatchNormalization())
 
-    merged_model.add(Dense(300))
-    merged_model.add(PReLU())
-    merged_model.add(Dropout(0.2))
-    merged_model.add(BatchNormalization())
+    #merged_model.add(Dense(300))
+    #merged_model.add(PReLU())
+    #merged_model.add(Dropout(0.2))
+    #merged_model.add(BatchNormalization())
 
-    merged_model.add(Dense(300))
-    merged_model.add(PReLU())
-    merged_model.add(Dropout(0.2))
-    merged_model.add(BatchNormalization())
+    #merged_model.add(Dense(300))
+    #merged_model.add(PReLU())
+    #merged_model.add(Dropout(0.2))
+    #merged_model.add(BatchNormalization())
 
     merged_model.add(Dense(1))
     merged_model.add(Activation('sigmoid'))
@@ -198,7 +198,7 @@ def train_test():
 
 
     hist = merged_model.fit([extended_q1, extended_q2, extended_q1, extended_q2, features], y=extended_y,
-                     batch_size=384, epochs=10, verbose=1, validation_split=0.1,
+                     batch_size=384, epochs=50, verbose=1, validation_split=0.1,
                      shuffle=True, callbacks=[early_stopping,checkpoint])
 
     bst_val_score = min(hist.history['val_loss'])
